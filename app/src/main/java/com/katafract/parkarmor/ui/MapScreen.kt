@@ -140,6 +140,7 @@ fun MapScreen(viewModel: MainViewModel) {
                     .align(Alignment.BottomStart)
                     .padding(16.dp),
                 containerColor = MaterialTheme.colorScheme.secondary,
+                icon = {},
                 text = { Text("Refresh Location") }
             )
         }
