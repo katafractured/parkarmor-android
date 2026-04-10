@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
 }
 
@@ -24,14 +25,23 @@ android {
         manifestPlaceholders["MAPS_API_KEY"] = System.getenv("MAPS_API_KEY") ?: ""
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile     = file(System.getenv("KEYSTORE_PATH") ?: "keystore/parkarmor-release.p12")
+            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: ""
+            keyAlias      = System.getenv("KEY_ALIAS")          ?: "parkarmor"
+            keyPassword   = System.getenv("KEY_PASSWORD")       ?: ""
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
+            signingConfig   = signingConfigs.getByName("release")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            signingConfig = signingConfigs.getByName("release")
         }
         debug {
-            isMinifyEnabled = false
+            isDebuggable = true
         }
     }
 
@@ -45,21 +55,13 @@ android {
     }
 
     buildFeatures {
-        compose = true
+        compose     = true
         buildConfig = true
     }
-packaging {
+
+    packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
-        }
-    }
-
-    signingConfigs {
-        create("release") {
-            storeFile = file(System.getenv("KEYSTORE_PATH") ?: "")
-            storePassword = System.getenv("KEYSTORE_PASSWORD")
-            keyAlias = System.getenv("KEY_ALIAS")
-            keyPassword = System.getenv("KEY_PASSWORD")
         }
     }
 }
