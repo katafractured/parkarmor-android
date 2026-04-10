@@ -1,0 +1,36 @@
+#!/bin/bash
+set -e
+
+# ParkArmor version bump script
+# Bumps versionCode and versionName in build.gradle.kts and creates a git tag
+
+if [ -z "$1" ]; then
+    echo "Usage: scripts/bump <version> (e.g., 1.0.1)"
+    exit 1
+fi
+
+VERSION=$1
+BUILD_GRADLE="app/build.gradle.kts"
+
+# Extract current versionCode and increment
+CURRENT_CODE=$(grep "versionCode = " "$BUILD_GRADLE" | sed -E 's/.*versionCode = ([0-9]+).*/\1/')
+NEW_CODE=$((CURRENT_CODE + 1))
+
+echo "Current versionCode: $CURRENT_CODE"
+echo "New versionCode: $NEW_CODE"
+echo "New versionName: $VERSION"
+
+# Update build.gradle.kts
+sed -i.bak "s/versionCode = [0-9]*/versionCode = $NEW_CODE/" "$BUILD_GRADLE"
+sed -i.bak "s/versionName = \"[^\"]*\"/versionName = \"$VERSION\"/" "$BUILD_GRADLE"
+rm -f "$BUILD_GRADLE.bak"
+
+echo "Updated $BUILD_GRADLE"
+
+# Git operations
+git add "$BUILD_GRADLE"
+git commit -m "Bump version to $VERSION (code $NEW_CODE)"
+git tag -a "v$VERSION" -m "Release $VERSION"
+
+echo "Created git tag: v$VERSION"
+echo "Ready to push: git push origin main && git push origin v$VERSION"

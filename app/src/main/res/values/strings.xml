@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ParkArmor</string>
+    <string name="save_parking">Save Parking</string>
+    <string name="found_car">Found Car</string>
+    <string name="parking_history">Parking History</string>
+    <string name="parked_location">Parked Location</string>
+    <string name="no_parking_history">No parking history yet</string>
+    <string name="directions">Directions</string>
+    <string name="delete">Delete</string>
+    <string name="edit_nickname">Edit Nickname</string>
+    <string name="parking_timer">Parking Timer</string>
+    <string name="set_timer">Set Timer</string>
+    <string name="update_timer">Update Timer</string>
+    <string name="no_timer_set">No timer set</string>
+    <string name="time_remaining">Time Remaining</string>
+    <string name="unnamed_parking">Unnamed Parking</string>
+    <string name="parked_at">Parked at</string>
+    <string name="map">Map</string>
+    <string name="history">History</string>
+</resources>

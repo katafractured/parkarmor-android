@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <!-- Allow backup of app data except cache and code -->
+    <exclude domain="cache" path="." />
+    <exclude domain="code_cache" path="." />
+</full-backup-content>

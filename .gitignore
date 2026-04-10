@@ -1,0 +1,25 @@
+# Gradle files
+.gradle/
+build/
+*.apk
+*.aar
+
+# IDE
+.idea/
+.DS_Store
+*.iml
+*.swp
+
+# Android specific
+local.properties
+captures/
+.externalNativeBuild
+
+# Environment
+.env
+.env.local
+
+# Gradle wrapper (will be auto-generated on first build)
+# gradlew
+# gradlew.bat
+# gradle/wrapper/gradle-wrapper.jar
