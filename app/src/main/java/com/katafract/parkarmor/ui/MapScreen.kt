@@ -36,6 +36,7 @@ import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.Marker
+import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.katafract.parkarmor.utils.LocationUtils
 import com.katafract.parkarmor.viewmodel.MainViewModel
@@ -71,7 +72,7 @@ fun MapScreen(viewModel: MainViewModel) {
         ) {
             currentLocation?.let { current ->
                 Marker(
-                    position = current,
+                    state = MarkerState(position = current),
                     title = "Current Location",
                     snippet = "You are here"
                 )
@@ -79,7 +80,7 @@ fun MapScreen(viewModel: MainViewModel) {
 
             activeParking?.let { parking ->
                 Marker(
-                    position = LatLng(parking.latitude, parking.longitude),
+                    state = MarkerState(position = LatLng(parking.latitude, parking.longitude)),
                     title = "Parked Here",
                     snippet = parking.nickname ?: parking.address
                 )
