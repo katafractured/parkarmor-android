@@ -8,12 +8,15 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Map
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
@@ -39,17 +42,18 @@ class MainActivity : ComponentActivity() {
         setContent {
             ParkArmorTheme {
                 val viewModel: MainViewModel = viewModel()
-                RequestLocationPermissions()
+                RequestRequiredPermissions()
                 MainScreen(viewModel)
             }
         }
     }
 
     @Composable
-    private fun RequestLocationPermissions() {
+    private fun RequestRequiredPermissions() {
         val permissions = mutableListOf(
             Manifest.permission.ACCESS_FINE_LOCATION,
-            Manifest.permission.ACCESS_COARSE_LOCATION
+            Manifest.permission.ACCESS_COARSE_LOCATION,
+            Manifest.permission.CAMERA
         )
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             permissions.add(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
@@ -60,7 +64,9 @@ class MainActivity : ComponentActivity() {
 
         val launcher = rememberLauncherForActivityResult(
             ActivityResultContracts.RequestMultiplePermissions()
-        ) { }
+        ) { results ->
+            // Log results if needed
+        }
 
         LaunchedEffect(Unit) {
             val missingPermissions = permissions.filter {
@@ -79,11 +85,16 @@ private fun MainScreen(viewModel: MainViewModel) {
     val activeParking by viewModel.activeParking.collectAsState()
 
     Scaffold(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background),
         bottomBar = {
-            NavigationBar {
+            NavigationBar(
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.onSurface
+            ) {
                 NavigationBarItem(
-                    icon = { Icon(Icons.Default.Home, contentDescription = "Map") },
+                    icon = { Icon(Icons.Default.Map, contentDescription = "Map") },
                     label = { Text("Map") },
                     selected = currentScreen == Screen.MAP,
                     onClick = { viewModel.switchScreen(Screen.MAP) }
@@ -96,7 +107,7 @@ private fun MainScreen(viewModel: MainViewModel) {
                 )
                 if (activeParking != null) {
                     NavigationBarItem(
-                        icon = { Icon(Icons.Default.Home, contentDescription = "Parked") },
+                        icon = { Icon(Icons.Default.CameraAlt, contentDescription = "Parked") },
                         label = { Text("Parked") },
                         selected = currentScreen == Screen.ACTIVE_PARKING,
                         onClick = { viewModel.switchScreen(Screen.ACTIVE_PARKING) }
@@ -105,11 +116,15 @@ private fun MainScreen(viewModel: MainViewModel) {
             }
         }
     ) { innerPadding ->
-        when (currentScreen) {
-            Screen.MAP -> MapScreen(viewModel = viewModel)
-            Screen.SAVE_CONFIRM -> SaveConfirmScreen(viewModel = viewModel)
-            Screen.ACTIVE_PARKING -> ActiveParkingScreen(viewModel = viewModel)
-            Screen.HISTORY -> HistoryScreen(viewModel = viewModel)
+        val screenContent = @Composable {
+            when (currentScreen) {
+                Screen.MAP -> MapScreen(viewModel = viewModel)
+                Screen.SAVE_CONFIRM -> SaveConfirmScreen(viewModel = viewModel)
+                Screen.ACTIVE_PARKING -> ActiveParkingScreen(viewModel = viewModel)
+                Screen.HISTORY -> HistoryScreen(viewModel = viewModel)
+            }
         }
+
+        screenContent()
     }
 }

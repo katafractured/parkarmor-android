@@ -1,9 +1,13 @@
 package com.katafract.parkarmor.viewmodel
 
+import android.app.Activity
 import android.app.Application
+import android.content.Intent
+import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.android.gms.maps.model.LatLng
+import com.katafract.parkarmor.billing.BillingManager
 import com.katafract.parkarmor.data.ParkingDatabase
 import com.katafract.parkarmor.data.ParkingLocation
 import com.katafract.parkarmor.data.ParkingTimer
@@ -26,7 +30,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val locationService = LocationService(application.applicationContext)
     private val database = ParkingDatabase.getInstance(application.applicationContext)
     private val dao = database.parkingDao()
-    private val timerService = ParkingTimerService()
 
     private val _currentLocation = MutableStateFlow<LatLng?>(null)
     val currentLocation: StateFlow<LatLng?> = _currentLocation.asStateFlow()
@@ -46,9 +49,49 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _loadingLocation = MutableStateFlow(false)
     val loadingLocation: StateFlow<Boolean> = _loadingLocation.asStateFlow()
 
+    private val _currentAddress = MutableStateFlow("")
+    val currentAddress: StateFlow<String> = _currentAddress.asStateFlow()
+
+    private val _timerMinutes = MutableStateFlow(30)
+    val timerMinutes: StateFlow<Int> = _timerMinutes.asStateFlow()
+
+    private val _timerRunning = MutableStateFlow(false)
+    val timerRunning: StateFlow<Boolean> = _timerRunning.asStateFlow()
+
+    private val _isPro = MutableStateFlow(false)
+    val isPro: StateFlow<Boolean> = _isPro.asStateFlow()
+
+    private val _notes = MutableStateFlow("")
+    val notes: StateFlow<String> = _notes.asStateFlow()
+
+    private val _capturedPhotoUri = MutableStateFlow<Uri?>(null)
+    val capturedPhotoUri: StateFlow<Uri?> = _capturedPhotoUri.asStateFlow()
+
+    private val billingManager = BillingManager(
+        application.applicationContext,
+        onPurchaseSuccess = { _, productId ->
+            if (productId == BillingManager.PROD_PRO) {
+                _isPro.value = true
+            }
+        },
+        onPurchaseError = { error ->
+            // Log error or show to user
+        }
+    )
+
     init {
+        billingManager.connect()
+        observeBillingStatus()
         refreshLocation()
         observeActiveParkingAndLocations()
+    }
+
+    private fun observeBillingStatus() {
+        viewModelScope.launch {
+            billingManager.isPro.collect { isPro ->
+                _isPro.value = isPro
+            }
+        }
     }
 
     fun refreshLocation() {
@@ -57,6 +100,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 val location = locationService.getCurrentLocation()
                 _currentLocation.value = location
+                if (location != null) {
+                    val address = locationService.getAddressFromLocation(
+                        location.latitude,
+                        location.longitude
+                    ) ?: "Unknown location"
+                    _currentAddress.value = address
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
             } finally {
@@ -69,7 +119,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             val location = _currentLocation.value ?: return@launch
             try {
-                val address = locationService.getAddressFromLocation(location.latitude, location.longitude) ?: ""
+                val address = locationService.getAddressFromLocation(
+                    location.latitude,
+                    location.longitude
+                ) ?: ""
 
                 val parkingLocation = ParkingLocation(
                     latitude = location.latitude,
@@ -101,7 +154,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun setParkingTimer(minutes: Int) {
+    fun startTimer(minutes: Int, context: android.content.Context) {
         viewModelScope.launch {
             val parking = _activeParking.value ?: return@launch
             val expiresAt = System.currentTimeMillis() + (minutes * 60 * 1000)
@@ -112,12 +165,23 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 isActive = true
             )
             dao.insertTimer(timer)
-            timerService.setTimer(
-                getApplication(),
-                parking.id,
-                expiresAt,
-                10
-            )
+
+            val intent = Intent(context, ParkingTimerService::class.java).apply {
+                putExtra(ParkingTimerService.EXTRA_DURATION_MINUTES, minutes)
+                putExtra(ParkingTimerService.EXTRA_ADDRESS, parking.address)
+                putExtra(ParkingTimerService.EXTRA_LOCATION_ID, parking.id)
+            }
+            context.startService(intent)
+            _timerRunning.value = true
+        }
+    }
+
+    fun stopTimer(context: android.content.Context) {
+        viewModelScope.launch {
+            val parking = _activeParking.value ?: return@launch
+            context.stopService(Intent(context, ParkingTimerService::class.java))
+            dao.deleteTimerForLocation(parking.id)
+            _timerRunning.value = false
         }
     }
 
@@ -125,9 +189,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             val parking = _activeParking.value ?: return@launch
             dao.updateLocation(parking.copy(isActive = false))
-            timerService.cancelTimer(getApplication(), parking.id)
             dao.deleteTimerForLocation(parking.id)
             _currentScreen.value = Screen.MAP
+            _timerRunning.value = false
         }
     }
 
@@ -135,13 +199,48 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             val location = _allLocations.value.find { it.id == id } ?: return@launch
             dao.deleteLocation(location)
-            timerService.cancelTimer(getApplication(), id)
             dao.deleteTimerForLocation(id)
+        }
+    }
+
+    fun clearHistory() {
+        viewModelScope.launch {
+            _allLocations.value.filter { !it.isActive }.forEach { location ->
+                dao.deleteLocation(location)
+            }
+        }
+    }
+
+    fun loadHistory() {
+        viewModelScope.launch {
+            dao.getAllLocations().collect { locations ->
+                _allLocations.value = locations
+            }
         }
     }
 
     fun switchScreen(screen: Screen) {
         _currentScreen.value = screen
+    }
+
+    fun launchBilling(activity: Activity) {
+        billingManager.launchPurchase(activity, BillingManager.PROD_PRO)
+    }
+
+    fun restorePurchases() {
+        billingManager.restorePurchases()
+    }
+
+    fun setNotes(notes: String) {
+        _notes.value = notes
+    }
+
+    fun setCapturedPhoto(uri: Uri?) {
+        _capturedPhotoUri.value = uri
+    }
+
+    fun setTimerMinutes(minutes: Int) {
+        _timerMinutes.value = minutes
     }
 
     private fun observeActiveParkingAndLocations() {
@@ -151,6 +250,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 if (activeLocation != null) {
                     dao.getTimerForLocation(activeLocation.id).collect { timer ->
                         _activeTimer.value = timer
+                        _timerRunning.value = timer != null && timer.isActive
                     }
                 }
             }
@@ -161,5 +261,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 _allLocations.value = locations
             }
         }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        billingManager.disconnect()
     }
 }
