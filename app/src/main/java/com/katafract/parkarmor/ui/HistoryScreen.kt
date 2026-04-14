@@ -128,7 +128,6 @@ fun HistoryScreen(viewModel: MainViewModel) {
                         ) {
                             Text("Clear All History")
                         }
-                    )
                     }
                 }
             }
