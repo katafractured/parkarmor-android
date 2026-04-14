@@ -248,7 +248,7 @@ fun ActiveParkingScreen(viewModel: MainViewModel) {
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             OutlinedButton(
-                                onClick = { timerMinutes = (timerMinutes.toIntOrNull() ?: 30) - 15 max 15 },
+                                onClick = { timerMinutes = kotlin.math.max((timerMinutes.toIntOrNull() ?: 30) - 15, 15).toString() },
                                 modifier = Modifier.weight(0.2f)
                             ) {
                                 Text("-")
@@ -261,7 +261,7 @@ fun ActiveParkingScreen(viewModel: MainViewModel) {
                                 singleLine = true
                             )
                             OutlinedButton(
-                                onClick = { timerMinutes = (timerMinutes.toIntOrNull() ?: 30) + 15 min 240 },
+                                onClick = { timerMinutes = kotlin.math.min((timerMinutes.toIntOrNull() ?: 30) + 15, 240).toString() },
                                 modifier = Modifier.weight(0.2f)
                             ) {
                                 Text("+")
