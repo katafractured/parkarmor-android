@@ -9,7 +9,6 @@ import android.os.CountDownTimer
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
-import androidx.core.app.LocalBroadcastManager
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import com.katafract.parkarmor.R
@@ -29,7 +28,6 @@ class ParkingTimerService : Service() {
     private var countDownTimer: CountDownTimer? = null
     private var locationId: String = ""
     private var address: String = ""
-    private val broadcastManager by lazy { LocalBroadcastManager.getInstance(this) }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -138,8 +136,9 @@ class ParkingTimerService : Service() {
         val intent = Intent(ACTION_TIMER_UPDATE).apply {
             putExtra(EXTRA_REMAINING_MINUTES, minutesRemaining)
             putExtra(EXTRA_LOCATION_ID, locationId)
+            setPackage(packageName)
         }
-        broadcastManager.sendBroadcast(intent)
+        sendBroadcast(intent)
     }
 
     private fun handleTimerExpired(expiredLocationId: String) {
@@ -158,8 +157,9 @@ class ParkingTimerService : Service() {
 
         val broadcastIntent = Intent(ACTION_TIMER_EXPIRED).apply {
             putExtra(EXTRA_LOCATION_ID, expiredLocationId)
+            setPackage(packageName)
         }
-        broadcastManager.sendBroadcast(broadcastIntent)
+        sendBroadcast(broadcastIntent)
 
         stopSelf()
     }
